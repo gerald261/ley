@@ -1,19 +1,19 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
+  ALL_UNIQUE_VEHICLE_IMAGE_URLS,
   CONTACT_EMAIL,
   CONTACT_PHONE,
   FACEBOOK_CONTACT_URL,
-  isVf3Variant,
+  isVehicleId,
   peso,
-  VEHICLE_IMAGES,
+  VEHICLE_COLOR_IMAGES,
+  VEHICLE_COLOR_OPTIONS,
+  VEHICLE_DEFAULT_COLOR,
+  VehicleColorKey,
+  VehicleId,
   VEHICLES,
-  VF3_COLOR_IMAGES_BY_VARIANT,
-  VF3_COLOR_OPTIONS,
-  VF3_DEFAULT_COLOR,
-  Vf3ColorKey,
-  Vf3VariantId,
 } from './data/vehicles';
-import { Vf3ColorShowcase } from './components/Vf3ColorShowcase';
+import { VehicleColorShowcase } from './components/VehicleColorShowcase';
 import { VehicleAssistant } from './components/VehicleAssistant';
 
 type SortOption = 'default' | 'priceLow' | 'priceHigh' | 'dpLow' | 'dpHigh';
@@ -26,8 +26,8 @@ function isValidPhone(v: string): boolean {
   return /^[0-9+\-\s()]{7,15}$/.test(v);
 }
 
-function getColorName(key: Vf3ColorKey): string {
-  return VF3_COLOR_OPTIONS.find((c) => c.key === key)?.name ?? 'White';
+function getColorName(key: VehicleColorKey): string {
+  return VEHICLE_COLOR_OPTIONS.find((c) => c.key === key)?.name ?? 'White';
 }
 
 export default function App() {
@@ -37,10 +37,10 @@ export default function App() {
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [compareNotice, setCompareNotice] = useState<string | null>(null);
 
-  // Per-variant active color for VF3 Base, VF3 Eco, VF3 Plus
-  const [vf3VariantColors, setVf3VariantColors] = useState<
-    Record<Vf3VariantId, Vf3ColorKey>
-  >({ ...VF3_DEFAULT_COLOR });
+  // Per-model active color across all 11 VinFast vehicles
+  const [vehicleColors, setVehicleColors] = useState<
+    Record<VehicleId, VehicleColorKey>
+  >({ ...VEHICLE_DEFAULT_COLOR });
 
   // Modals
   const [detailVehicleId, setDetailVehicleId] = useState<string | null>(null);
@@ -55,7 +55,7 @@ export default function App() {
   const [tdName, setTdName] = useState('');
   const [tdPhone, setTdPhone] = useState('');
   const [tdVehicle, setTdVehicle] = useState('');
-  const [tdColor, setTdColor] = useState<Vf3ColorKey>('white');
+  const [tdColor, setTdColor] = useState<VehicleColorKey>('white');
   const [tdDate, setTdDate] = useState('');
   const [tdTime, setTdTime] = useState('');
   const [tdNotes, setTdNotes] = useState('');
@@ -71,7 +71,7 @@ export default function App() {
   const [iqPhone, setIqPhone] = useState('');
   const [iqEmail, setIqEmail] = useState('');
   const [iqVehicle, setIqVehicle] = useState('');
-  const [iqColor, setIqColor] = useState<Vf3ColorKey>('white');
+  const [iqColor, setIqColor] = useState<VehicleColorKey>('white');
   const [iqDp, setIqDp] = useState('');
   const [iqBudget, setIqBudget] = useState('');
   const [iqMsg, setIqMsg] = useState('');
@@ -85,11 +85,11 @@ export default function App() {
 
   const [copiedBanner, setCopiedBanner] = useState<string | null>(null);
 
-  // Preload all 4 VF3 color images immediately on mount so crossfades never flicker
+  // Preload all unique model color images on mount so crossfades never flicker
   useEffect(() => {
-    VF3_COLOR_OPTIONS.forEach((opt) => {
+    ALL_UNIQUE_VEHICLE_IMAGE_URLS.forEach((src) => {
       const img = new Image();
-      img.src = opt.image;
+      img.src = src;
     });
   }, []);
 
@@ -111,28 +111,31 @@ export default function App() {
     setMobileMenuOpen(false);
   }
 
-  function handleSelectVf3Color(variantId: Vf3VariantId, color: Vf3ColorKey) {
-    setVf3VariantColors((prev) => ({ ...prev, [variantId]: color }));
-    if (iqVehicle === variantId) {
+  function handleSelectVehicleColor(
+    vehicleId: VehicleId,
+    color: VehicleColorKey
+  ) {
+    setVehicleColors((prev) => ({ ...prev, [vehicleId]: color }));
+    if (iqVehicle === vehicleId) {
       setIqColor(color);
     }
-    if (tdVehicle === variantId) {
+    if (tdVehicle === vehicleId) {
       setTdColor(color);
     }
   }
 
   function handleInquireVehicle(id: string) {
     setIqVehicle(id);
-    if (isVf3Variant(id)) {
-      setIqColor(vf3VariantColors[id]);
+    if (isVehicleId(id)) {
+      setIqColor(vehicleColors[id]);
     }
     scrollToSection('contact');
   }
 
   function handleBookTestDrive(id: string) {
     setTdVehicle(id);
-    if (isVf3Variant(id)) {
-      setTdColor(vf3VariantColors[id]);
+    if (isVehicleId(id)) {
+      setTdColor(vehicleColors[id]);
     }
     scrollToSection('testdrive');
   }
@@ -212,7 +215,7 @@ export default function App() {
       return;
     }
     const vName = VEHICLES.find((v) => v.id === tdVehicle)?.name || tdVehicle;
-    const colorLine = isVf3Variant(tdVehicle)
+    const colorLine = isVehicleId(tdVehicle)
       ? `\nPreferred Color: ${getColorName(tdColor)}`
       : '';
     const draft = `Test Drive Request\nName: ${tdName}\nPhone: ${tdPhone}\nVehicle: ${vName}${colorLine}\nDate: ${tdDate}\nTime: ${tdTime}\nNotes: ${tdNotes}`;
@@ -242,7 +245,7 @@ export default function App() {
       return;
     }
     const vName = VEHICLES.find((v) => v.id === iqVehicle)?.name || iqVehicle;
-    const colorLine = isVf3Variant(iqVehicle)
+    const colorLine = isVehicleId(iqVehicle)
       ? `\nExterior Color: ${getColorName(iqColor)}`
       : '';
     const draft = `Vehicle Inquiry\nName: ${iqName}\nPhone: ${iqPhone}\nEmail: ${iqEmail}\nVehicle: ${vName}${colorLine}\nPreferred DP: ${
@@ -370,8 +373,8 @@ export default function App() {
       <section id="vehicles" className="vf-section wrap">
         <h2 className="sec-title">Our Vehicles</h2>
         <p className="sec-sub">
-          Search, sort and compare all 11 VinFast models. Customize VF3 Base,
-          VF3 Eco, and VF3 Plus in White, Green, Grey, or Yellow.
+          Search, sort and compare all 11 VinFast models. Customize every
+          VinFast model in White, Green, Grey, or Yellow.
         </p>
 
         <div className="toolbar">
@@ -420,15 +423,12 @@ export default function App() {
 
         <div className="grid">
           {filteredVehicles.map((v) => {
-            const vf3Id = isVf3Variant(v.id) ? v.id : null;
-            const activeColorKey = vf3Id ? vf3VariantColors[vf3Id] : null;
-            const activeColorMeta = activeColorKey
-              ? VF3_COLOR_OPTIONS.find((c) => c.key === activeColorKey)
-              : null;
-            const cardImage = vf3Id
-              ? VF3_COLOR_IMAGES_BY_VARIANT[vf3Id][vf3VariantColors[vf3Id]]
-              : VEHICLE_IMAGES[v.id];
-            const accentColor = activeColorMeta ? activeColorMeta.hex : v.color;
+            const activeColorKey = vehicleColors[v.id];
+            const activeColorMeta =
+              VEHICLE_COLOR_OPTIONS.find((c) => c.key === activeColorKey) ??
+              VEHICLE_COLOR_OPTIONS[0];
+            const colorMap = VEHICLE_COLOR_IMAGES[v.id];
+            const accentColor = activeColorMeta.hex;
 
             return (
               <div
@@ -437,34 +437,23 @@ export default function App() {
                 data-id={v.id}
                 style={{
                   borderTopColor:
-                    activeColorMeta?.key === 'white'
-                      ? '#0A1830'
-                      : accentColor,
+                    activeColorMeta.key === 'white' ? '#0A1830' : accentColor,
                 }}
               >
                 <div className="thumb">
-                  {vf3Id ? (
-                    VF3_COLOR_OPTIONS.map((opt) => (
-                      <img
-                        key={opt.key}
-                        src={VF3_COLOR_IMAGES_BY_VARIANT[vf3Id][opt.key]}
-                        alt={`${v.name} in ${opt.name}`}
-                        referrerPolicy="no-referrer"
-                        className="vf3-stage-img"
-                        style={{
-                          opacity: vf3VariantColors[vf3Id] === opt.key ? 1 : 0,
-                          zIndex: vf3VariantColors[vf3Id] === opt.key ? 2 : 1,
-                        }}
-                      />
-                    ))
-                  ) : (
+                  {VEHICLE_COLOR_OPTIONS.map((opt) => (
                     <img
-                      src={cardImage}
-                      alt={v.name}
-                      loading="lazy"
+                      key={opt.key}
+                      src={colorMap[opt.key]}
+                      alt={`${v.name} in ${opt.name}`}
                       referrerPolicy="no-referrer"
+                      className="vf3-stage-img"
+                      style={{
+                        opacity: activeColorKey === opt.key ? 1 : 0,
+                        zIndex: activeColorKey === opt.key ? 2 : 1,
+                      }}
                     />
-                  )}
+                  ))}
                 </div>
 
                 <div className="body">
@@ -480,7 +469,7 @@ export default function App() {
                     className="price"
                     style={{
                       background:
-                        activeColorMeta?.key === 'white'
+                        activeColorMeta.key === 'white'
                           ? '#E2E8F0'
                           : `${accentColor}22`,
                       color: 'var(--navy)',
@@ -493,43 +482,41 @@ export default function App() {
                     SRP {peso(v.srp)} • Monthly {peso(v.monthly)} (5 yrs)
                   </div>
 
-                  {vf3Id && activeColorMeta && (
-                    <div className="mt-1 flex items-center justify-between gap-2 rounded-md border border-[#E2E7EF] bg-[#F8FAFC] px-2.5 py-1.5">
-                      <span className="text-[11px] font-medium text-[#5B6B80]">
-                        Color:{' '}
-                        <strong className="text-[#0A1830]">
-                          {activeColorMeta.name}
-                        </strong>
-                      </span>
-                      <div
-                        className="flex items-center gap-1.5"
-                        aria-label={`${v.name} quick color switcher`}
-                      >
-                        {VF3_COLOR_OPTIONS.map((opt) => {
-                          const selected = vf3VariantColors[vf3Id] === opt.key;
-                          return (
-                            <button
-                              key={opt.key}
-                              type="button"
-                              aria-label={`${v.name} ${opt.name}`}
-                              title={opt.name}
-                              onClick={() =>
-                                handleSelectVf3Color(vf3Id, opt.key)
-                              }
-                              className="h-4 w-4 rounded-full cursor-pointer transition-transform"
-                              style={{
-                                backgroundColor: opt.hex,
-                                border: selected
-                                  ? '2px solid #1877f2'
-                                  : `1px solid ${opt.borderHex}`,
-                                transform: selected ? 'scale(1.15)' : 'scale(1)',
-                              }}
-                            />
-                          );
-                        })}
-                      </div>
+                  <div className="mt-1 flex items-center justify-between gap-2 rounded-md border border-[#E2E7EF] bg-[#F8FAFC] px-2.5 py-1.5">
+                    <span className="text-[11px] font-medium text-[#5B6B80]">
+                      Color:{' '}
+                      <strong className="text-[#0A1830]">
+                        {activeColorMeta.name}
+                      </strong>
+                    </span>
+                    <div
+                      className="flex items-center gap-1.5"
+                      aria-label={`${v.name} quick color switcher`}
+                    >
+                      {VEHICLE_COLOR_OPTIONS.map((opt) => {
+                        const selected = activeColorKey === opt.key;
+                        return (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            aria-label={`${v.name} ${opt.name}`}
+                            title={opt.name}
+                            onClick={() =>
+                              handleSelectVehicleColor(v.id, opt.key)
+                            }
+                            className="h-4 w-4 rounded-full cursor-pointer transition-transform"
+                            style={{
+                              backgroundColor: opt.hex,
+                              border: selected
+                                ? '2px solid #1877f2'
+                                : `1px solid ${opt.borderHex}`,
+                              transform: selected ? 'scale(1.15)' : 'scale(1)',
+                            }}
+                          />
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
 
                   <label className="mt-0.5 flex items-center gap-1.5 text-[0.78rem] text-[#5B6B80] cursor-pointer">
                     <input
@@ -703,8 +690,8 @@ export default function App() {
               onChange={(e) => {
                 const val = e.target.value;
                 setTdVehicle(val);
-                if (isVf3Variant(val)) {
-                  setTdColor(vf3VariantColors[val]);
+                if (isVehicleId(val)) {
+                  setTdColor(vehicleColors[val]);
                 }
               }}
               required
@@ -721,15 +708,19 @@ export default function App() {
             )}
           </div>
 
-          {isVf3Variant(tdVehicle) && (
+          {isVehicleId(tdVehicle) && (
             <div className="field">
-              <label htmlFor="tdColor">Preferred VF3 Color</label>
+              <label htmlFor="tdColor">Preferred Exterior Color</label>
               <select
                 id="tdColor"
                 value={tdColor}
-                onChange={(e) => setTdColor(e.target.value as Vf3ColorKey)}
+                onChange={(e) => {
+                  const col = e.target.value as VehicleColorKey;
+                  setTdColor(col);
+                  handleSelectVehicleColor(tdVehicle, col);
+                }}
               >
-                {VF3_COLOR_OPTIONS.map((opt) => (
+                {VEHICLE_COLOR_OPTIONS.map((opt) => (
                   <option key={opt.key} value={opt.key}>
                     {opt.name} ({opt.finish})
                   </option>
@@ -888,8 +879,8 @@ export default function App() {
               onChange={(e) => {
                 const val = e.target.value;
                 setIqVehicle(val);
-                if (isVf3Variant(val)) {
-                  setIqColor(vf3VariantColors[val]);
+                if (isVehicleId(val)) {
+                  setIqColor(vehicleColors[val]);
                 }
               }}
               required
@@ -906,11 +897,11 @@ export default function App() {
             )}
           </div>
 
-          {isVf3Variant(iqVehicle) && (
+          {isVehicleId(iqVehicle) && (
             <div className="field">
               <label htmlFor="iqColor">Selected Exterior Color</label>
               <div className="grid grid-cols-4 gap-2 mb-2">
-                {VF3_COLOR_OPTIONS.map((opt) => {
+                {VEHICLE_COLOR_OPTIONS.map((opt) => {
                   const active = iqColor === opt.key;
                   return (
                     <button
@@ -918,7 +909,7 @@ export default function App() {
                       type="button"
                       onClick={() => {
                         setIqColor(opt.key);
-                        handleSelectVf3Color(iqVehicle, opt.key);
+                        handleSelectVehicleColor(iqVehicle, opt.key);
                       }}
                       className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-medium cursor-pointer ${
                         active
@@ -1096,38 +1087,22 @@ export default function App() {
               ✕
             </button>
 
-            {isVf3Variant(detailVehicle.id) ? (
-              <Vf3ColorShowcase
-                variantId={detailVehicle.id}
-                variantName={detailVehicle.name}
-                selectedColor={vf3VariantColors[detailVehicle.id]}
-                onSelectColor={(c) =>
-                  handleSelectVf3Color(detailVehicle.id as Vf3VariantId, c)
-                }
-              />
-            ) : (
-              <div
-                className="thumb mb-3.5 overflow-hidden rounded-[10px] border border-[#E2E7EF]"
-                style={{ height: 220 }}
-              >
-                <img
-                  src={VEHICLE_IMAGES[detailVehicle.id]}
-                  alt={detailVehicle.name}
-                  referrerPolicy="no-referrer"
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            )}
+            <VehicleColorShowcase
+              vehicleId={detailVehicle.id}
+              vehicleName={detailVehicle.name}
+              selectedColor={vehicleColors[detailVehicle.id]}
+              onSelectColor={(c) =>
+                handleSelectVehicleColor(detailVehicle.id, c)
+              }
+            />
 
             <div className="flex items-center justify-between gap-2 mb-1">
               <h2 id="detailModalTitle" className="m-0 text-xl font-bold">
                 {detailVehicle.name}
               </h2>
-              {isVf3Variant(detailVehicle.id) && (
-                <span className="rounded-md bg-[#0A1830] px-2.5 py-1 text-xs font-semibold text-white">
-                  {getColorName(vf3VariantColors[detailVehicle.id])}
-                </span>
-              )}
+              <span className="rounded-md bg-[#0A1830] px-2.5 py-1 text-xs font-semibold text-white">
+                {getColorName(vehicleColors[detailVehicle.id])}
+              </span>
             </div>
 
             <p className="text-[0.85rem] text-[#5B6B80] m-0 mb-3.5">
@@ -1149,14 +1124,12 @@ export default function App() {
                   <th>Monthly (5 yrs)</th>
                   <td>{peso(detailVehicle.monthly)}</td>
                 </tr>
-                {isVf3Variant(detailVehicle.id) && (
-                  <tr>
-                    <th>Selected Exterior Color</th>
-                    <td className="font-semibold">
-                      {getColorName(vf3VariantColors[detailVehicle.id])}
-                    </td>
-                  </tr>
-                )}
+                <tr>
+                  <th>Selected Exterior Color</th>
+                  <td className="font-semibold">
+                    {getColorName(vehicleColors[detailVehicle.id])}
+                  </td>
+                </tr>
               </tbody>
             </table>
 
@@ -1192,9 +1165,9 @@ export default function App() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => {
-                  const colorTxt = isVf3Variant(detailVehicle.id)
-                    ? ` in ${getColorName(vf3VariantColors[detailVehicle.id])}`
-                    : '';
+                  const colorTxt = ` in ${getColorName(
+                    vehicleColors[detailVehicle.id]
+                  )}`;
                   copyDraftText(
                     `Hi Jhon Lee Pama, I'm interested in the VinFast ${detailVehicle.name}${colorTxt} (SRP ${peso(
                       detailVehicle.srp

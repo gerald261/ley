@@ -1,43 +1,43 @@
 import { Check } from 'lucide-react';
 import {
-  VF3_COLOR_IMAGES_BY_VARIANT,
-  VF3_COLOR_OPTIONS,
-  Vf3ColorKey,
-  Vf3VariantId,
+  VEHICLE_COLOR_IMAGES,
+  VEHICLE_COLOR_OPTIONS,
+  VehicleColorKey,
+  VehicleId,
 } from '../data/vehicles';
 
-interface Vf3ColorShowcaseProps {
-  variantId: Vf3VariantId;
-  variantName: string;
-  selectedColor: Vf3ColorKey;
-  onSelectColor: (color: Vf3ColorKey) => void;
+interface VehicleColorShowcaseProps {
+  vehicleId: VehicleId;
+  vehicleName: string;
+  selectedColor: VehicleColorKey;
+  onSelectColor: (color: VehicleColorKey) => void;
 }
 
-export function Vf3ColorShowcase({
-  variantId,
-  variantName,
+export function VehicleColorShowcase({
+  vehicleId,
+  vehicleName,
   selectedColor,
   onSelectColor,
-}: Vf3ColorShowcaseProps) {
+}: VehicleColorShowcaseProps) {
   const activeOption =
-    VF3_COLOR_OPTIONS.find((c) => c.key === selectedColor) ??
-    VF3_COLOR_OPTIONS[0];
-  const colorImages = VF3_COLOR_IMAGES_BY_VARIANT[variantId];
+    VEHICLE_COLOR_OPTIONS.find((c) => c.key === selectedColor) ??
+    VEHICLE_COLOR_OPTIONS[0];
+  const colorImages = VEHICLE_COLOR_IMAGES[vehicleId];
 
   return (
     <div className="mb-4">
       <div
         className="vf3-stage"
         role="img"
-        aria-label={`${variantName} in ${activeOption.name}`}
+        aria-label={`${vehicleName} in ${activeOption.name}`}
       >
-        {VF3_COLOR_OPTIONS.map((option) => {
+        {VEHICLE_COLOR_OPTIONS.map((option) => {
           const isActive = option.key === selectedColor;
           return (
             <img
               key={option.key}
               src={colorImages[option.key]}
-              alt={`${variantName} — ${option.name}`}
+              alt={`${vehicleName} — ${option.name}`}
               referrerPolicy="no-referrer"
               className="vf3-stage-img"
               style={{
@@ -81,9 +81,9 @@ export function Vf3ColorShowcase({
         <div
           className="grid grid-cols-4 gap-2"
           role="radiogroup"
-          aria-label={`Choose ${variantName} exterior color`}
+          aria-label={`Choose ${vehicleName} exterior color`}
         >
-          {VF3_COLOR_OPTIONS.map((option) => {
+          {VEHICLE_COLOR_OPTIONS.map((option) => {
             const isSelected = option.key === selectedColor;
             return (
               <button

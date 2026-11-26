@@ -2,5 +2,7 @@
   "name": "VinFast Pampanga — Jhon Lee Pama",
   "description": "VinFast Pampanga EV lineup with interactive VF3 color customization, Paylite Low DP calculator, test drive requests, and direct inquiry to Sale Ambassador Jhon Lee Pama.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
